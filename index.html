@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="A weekly snapshot of the public companies that build AI infrastructure — from power and equipment through silicon, packaging and servers to the hyperscalers that buy the compute.">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="AI Supply Chain Monitor">
+<meta property="og:description" content="Weekly market values and news across the AI infrastructure supply chain.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mehrabiani.com/projects/aisc/">
+<title>AI Supply Chain Monitor — Kareem Mehrabiani</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: a phosphor-green terminal session, read top to bottom — banner and prompt, ticker tape, headline readouts, the stack as a top-to-bottom chart, this week's log, each tier as a framed treemap plus its layers, history, archive, README. Single deliberate theme: dark CRT. */
+:root {
+  color-scheme: dark;
+  --bg: #050806;
+  --surface: #070b08;
+  --surface-2: #0b1a0f;
+  --line: #17532a;
+  --fg: #35f06a;
+  --fg-2: #25b54d;
+  --fg-3: #1b8a3b;
+  --bright: #c9ffd9;
+  --accent: #ffb000;
+  --up: #86ff9f;
+  --down: #ff5f5f;
+  --t1: #00aaaa; --t2: #aa00aa; --t3: #00aa00; --t4: #aa5500; --t5: #5555ff;
+  --ink-t1: #000000; --ink-t2: #ffffff; --ink-t3: #000000; --ink-t4: #ffffff; --ink-t5: #ffffff;
+  --glow: 0 0 6px rgba(53, 240, 106, .45);
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  --font-display: "VT323", "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-mono); font-size: 14px; line-height: 1.5; margin: 0; padding-block: 0 56px; padding-inline: 16px; -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 60; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .17) 0 1px, transparent 1px 3px); }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 59; background: radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, .35) 100%); }
+a { color: var(--bright); text-decoration: underline; text-decoration-style: dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { background: var(--fg); color: #000; text-decoration: none; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 1px dashed var(--accent); outline-offset: 2px; }
+::selection { background: var(--fg); color: #000; }
+.wrap { max-width: 880px; margin: 0 auto; display: grid; gap: 26px; }
+.up { color: var(--up); }
+.down { color: var(--down); }
+.muted { color: var(--fg-3); }
+.bright { color: var(--bright); }
+.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.note { font-size: 12.5px; color: var(--fg-2); margin: 0; max-width: 78ch; }
+.note::before { content: "# "; color: var(--fg-3); }
+
+/* framed blocks: a box with its title cut into the top border */
+.box { position: relative; border: 1px solid var(--line); padding: 16px 14px 12px; margin-top: 8px; }
+.box > .legend { position: absolute; top: -0.75em; left: 10px; background: var(--bg); padding: 0 6px; color: var(--bright); font-size: 12.5px; letter-spacing: .02em; white-space: nowrap; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
+.box > .legend::before { content: "$ "; color: var(--fg-2); }
+.box > .legend.dir::before { content: "> "; }
+
+/* banner */
+.top { padding-top: 22px; display: grid; gap: 10px; }
+.banner { margin: 0; font-family: var(--font-mono); font-size: clamp(9px, 2.5vw, 12.5px); line-height: 1.2; color: var(--bright); text-shadow: var(--glow); overflow-x: auto; white-space: pre; }
+.sysline { display: grid; gap: 2px; font-size: 13px; color: var(--fg-2); }
+.sysline b { color: var(--fg); font-weight: 500; }
+.prompt { font-size: 14px; color: var(--bright); }
+.prompt::before { content: "$ "; color: var(--fg-2); }
+.cursor::after { content: "█"; margin-left: 2px; color: var(--fg); animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.jump { display: flex; gap: 10px 14px; flex-wrap: wrap; font-size: 13px; }
+.jump a { text-decoration: none; color: var(--fg); }
+.jump a::before { content: "["; color: var(--fg-3); }
+.jump a::after { content: "]"; color: var(--fg-3); }
+.jump a:hover { background: none; color: var(--bright); text-shadow: var(--glow); }
+
+/* ticker tape */
+.tape { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; white-space: nowrap; padding: 5px 0; font-size: 12.5px; color: var(--fg-2); }
+.tape .track { display: inline-block; will-change: transform; animation: tape var(--dur, 90s) linear infinite; }
+.tape .track:hover { animation-play-state: paused; }
+.tape .it { display: inline-block; padding: 0 14px 0 0; }
+.tape .it b { color: var(--fg); font-weight: 500; }
+.tape .it::after { content: "│"; color: var(--fg-3); padding-left: 14px; }
+@keyframes tape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* readouts */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tiles.n3 .tile:first-child { grid-column: 1 / -1; }
+@media (min-width: 640px) {
+  .tiles.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tiles.n3 .tile:first-child { grid-column: auto; }
+  .tiles.n4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.tile { border: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 0; min-width: 0; }
+.tile .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); }
+.tile .k::before { content: "▸ "; }
+.tile .v { font-family: var(--font-display); font-size: 36px; line-height: 1; color: var(--bright); text-shadow: var(--glow); overflow-wrap: anywhere; margin-top: 4px; }
+.tile .s { font-size: 12px; color: var(--fg-2); margin-top: 4px; }
+
+/* stack chart */
+.stackviz { display: grid; gap: 0; }
+.stackviz .cap { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 6px; }
+.band { display: grid; grid-template-columns: 14ch minmax(0, 1fr) 7ch 6ch; grid-template-areas: "l b t d"; gap: 4px 10px; align-items: center; text-decoration: none; color: inherit; padding: 6px 0; border-top: 1px dashed var(--line); }
+.band:first-of-type { border-top: 0; }
+.band:hover { background: none; color: inherit; }
+.band:hover .bl { color: var(--bright); text-shadow: var(--glow); }
+.band .bl { grid-area: l; display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13.5px; min-width: 0; color: var(--fg); }
+.band .bl i { width: 10px; height: 10px; background: var(--c); flex: none; }
+.band .bl small { color: var(--fg-3); font-weight: 400; font-size: 11.5px; white-space: nowrap; }
+.band .bt { grid-area: b; position: relative; height: 18px; min-width: 0; background: radial-gradient(circle, rgba(53, 240, 106, .28) 1px, transparent 1.3px) 0 0 / 4px 4px; }
+.band .bf { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); }
+.band .bv { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font-size: 12px; font-weight: 500; color: var(--fg); white-space: nowrap; }
+.band .bv.in { color: var(--ink); }
+.band .bn { grid-area: t; text-align: right; font-size: 13px; color: var(--bright); }
+.band .bd { grid-area: d; text-align: right; font-size: 12.5px; }
+@media (max-width: 560px) {
+  .band { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "l t d" "b b b"; }
+  .band .bd:empty { display: none; }
+}
+
+/* week log */
+.brief { display: grid; gap: 12px; }
+.brief h3 { margin: 0; font-family: var(--font-display); font-size: 28px; line-height: 1.05; color: var(--bright); text-shadow: var(--glow); font-weight: 400; text-wrap: balance; }
+.brief .intro { font-size: 13.5px; line-height: 1.6; margin: 0; max-width: 72ch; color: var(--fg); }
+.items { list-style: none; margin: 0; padding: 0; display: grid; }
+.items li { display: grid; gap: 3px; padding: 10px 0; border-top: 1px dashed var(--line); }
+.items li .h { font-weight: 600; line-height: 1.35; color: var(--bright); }
+.items li .h::before { content: "> "; color: var(--fg-2); font-weight: 400; }
+.items li p { margin: 0; color: var(--fg-2); font-size: 13px; max-width: 78ch; }
+.items li .meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--fg-3); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--fg-2); text-transform: lowercase; }
+.chip i { width: 8px; height: 8px; display: inline-block; background: var(--c, var(--fg-3)); }
+.movers { display: grid; gap: 6px; }
+.movers h4 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); }
+.movers .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 20px; }
+.movers .mv { display: grid; grid-template-columns: 1fr auto; gap: 6px; font-size: 13px; padding: 3px 0; border-top: 1px dashed var(--line); }
+
+/* tiers */
+.tiers { display: grid; gap: 22px; }
+.tier { scroll-margin-top: 14px; }
+.tier-head { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; align-items: start; padding-bottom: 10px; }
+.tier-head .nm { display: flex; align-items: center; gap: 10px; }
+.tier-head .nm i { width: 14px; height: 14px; display: inline-block; background: var(--c); flex: none; }
+.tier-head h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1; color: var(--bright); text-shadow: var(--glow); }
+.tier-head .sub { font-size: 12.5px; color: var(--fg-2); grid-column: 1 / -1; }
+.tier-head .tot { text-align: right; display: grid; }
+.tier-head .tot .v { font-family: var(--font-display); font-size: 30px; line-height: 1; color: var(--bright); text-shadow: var(--glow); }
+.tier-head .tot .d { font-size: 12px; }
+.tier-viz { display: grid; gap: 6px; padding-bottom: 10px; }
+.tm { display: block; width: 100%; max-width: 100%; height: auto; }
+.tm .tl rect { fill: var(--c); }
+.tm .tl text { fill: var(--ink); font-family: var(--font-mono); font-size: 11px; pointer-events: none; }
+.tm .gcap { fill: var(--fg-2); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; pointer-events: none; }
+.tm .tl:hover rect { filter: brightness(1.25); }
+.tcap { font-size: 12px; color: var(--fg-2); }
+.tcap::before { content: "# "; color: var(--fg-3); }
+.tcap b { color: var(--bright); font-weight: 500; }
+.layer { padding: 10px 0 4px; border-top: 1px solid var(--line); }
+.layer-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; margin-bottom: 4px; }
+.layer-head h4 { margin: 0; font-weight: 600; font-size: 13.5px; color: var(--bright); }
+.layer-head h4::before { content: "./"; color: var(--fg-3); font-weight: 400; }
+.layer-head .lsum { font-size: 12px; color: var(--fg-2); text-align: right; white-space: nowrap; }
+.layer-head .gate { grid-column: 1 / -1; font-size: 11.5px; color: var(--fg-3); }
+.cols-head, .row { display: grid; grid-template-columns: minmax(0, 1fr) 9ch 7ch 7ch; gap: 8px; align-items: baseline; }
+.noprev .cols-head, .noprev .row { grid-template-columns: minmax(0, 1fr) 9ch 7ch; }
+.cols-head { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); padding: 2px 0 4px; }
+.cols-head span:not(:first-child), .row .num { text-align: right; }
+.row { padding: 7px 0; border-top: 1px dashed var(--line); font-size: 13px; }
+.row .co { min-width: 0; display: grid; gap: 2px; }
+.row .co .tk { font-size: 12.5px; font-weight: 600; color: var(--bright); }
+.row .co .tk small { color: var(--fg-2); font-weight: 400; margin-left: 6px; }
+.row .co .role { font-size: 12px; color: var(--fg-2); line-height: 1.4; }
+.row .co .st { font-size: 10.5px; color: var(--accent); line-height: 1.3; }
+.row .co .st::before { content: "! "; }
+.row .co .bar4 { height: 6px; margin-top: 3px; background: radial-gradient(circle, rgba(53, 240, 106, .28) 1px, transparent 1.3px) 0 0 / 4px 4px; }
+.row .co .bar4 i { display: block; height: 100%; background: var(--c); width: var(--w); min-width: 2px; }
+.row .num { font-size: 13px; color: var(--fg); }
+.row .pe { color: var(--fg-2); }
+
+/* trend */
+.trend { display: grid; gap: 8px; }
+.trend .th { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--fg-3); }
+.trend svg { width: 100%; height: auto; display: block; }
+
+/* archive */
+details { border-top: 1px dashed var(--line); }
+details:last-of-type { border-bottom: 1px dashed var(--line); }
+summary { cursor: pointer; padding: 8px 0; font-weight: 500; display: flex; gap: 10px; align-items: baseline; list-style: none; color: var(--fg); }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "[+]"; color: var(--fg-3); }
+details[open] summary::before { content: "[-]"; }
+summary .mono { color: var(--fg-3); font-size: 12px; }
+details .brief { padding: 4px 0 14px; }
+
+/* readme */
+.notes { font-size: 12.5px; color: var(--fg-2); display: grid; gap: 6px; max-width: 80ch; }
+.notes p { margin: 0; }
+.notes p::before { content: "# "; color: var(--fg-3); }
+.foot { font-size: 11.5px; color: var(--fg-3); display: flex; gap: 8px 18px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px; }
+
+@media (max-width: 480px) {
+  .cols-head, .row { grid-template-columns: minmax(0, 1fr) 8ch 6.5ch 6ch; gap: 6px; }
+  .noprev .cols-head, .noprev .row { grid-template-columns: minmax(0, 1fr) 8ch 6ch; }
+  .box { padding: 14px 10px 10px; }
+  .tier-head h3, .tier-head .tot .v { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cursor::after { animation: none; }
+  .tape { overflow-x: auto; }
+  .tape .track { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="box"><span class="legend">./aisc-mon --version</span>
+<pre class="banner" aria-label="AISC MON">   _   ___ ___  ___   __  __  ___  _  _
+  /_\ |_ _/ __|/ __| |  \/  |/ _ \| \| |
+ / _ \ | |\__ \ (__  | |\/| | (_) | .` |
+/_/ \_\___|___/\___| |_|  |_|\___/|_|\_|</pre>
+      <div class="sysline" id="sysline">
+        <div>AI SUPPLY CHAIN MONITOR · weekly snapshot</div>
+        <div id="asof">loading latest snapshot…</div>
+      </div>
+    </div>
+    <div class="prompt cursor" id="prompt">./aisc-mon --snapshot latest</div>
+    <nav class="jump" aria-label="Sections">
+      <a href="#week">this week</a>
+      <a href="#stack">the stack</a>
+      <a href="#trend">trend</a>
+      <a href="#archive">archive</a>
+      <a href="#notes">readme</a>
+    </nav>
+  </header>
+
+  <div class="tape" id="tape" aria-label="Ticker tape"></div>
+
+  <section class="box" aria-label="Summary"><span class="legend">cat summary.txt</span>
+    <div style="display:grid;gap:16px">
+      <div class="tiles" id="tiles">
+        <div class="tile"><div class="k">Tracked value</div><div class="v">—</div><div class="s">loading</div></div>
+        <div class="tile"><div class="k">Largest</div><div class="v">—</div><div class="s">loading</div></div>
+        <div class="tile"><div class="k">Largest tier</div><div class="v">—</div><div class="s">loading</div></div>
+      </div>
+      <div class="stackviz" id="stackviz"></div>
+    </div>
+  </section>
+
+  <section class="box" id="week"><span class="legend">tail -n 12 week.log</span>
+    <div class="brief" id="brief"><p class="note">the weekly brief appears here after the first refresh</p></div>
+  </section>
+
+  <section class="box" id="stack"><span class="legend">tree -L 2 stack/</span>
+    <div style="display:grid;gap:12px">
+      <p class="note" id="stack-note">tiles sized by market value</p>
+      <div class="tiers" id="tiers"></div>
+    </div>
+  </section>
+
+  <section class="box" id="trend"><span class="legend">plot history.dat</span>
+    <div class="trend" id="trend-box"><p class="note">a point is added every week</p></div>
+  </section>
+
+  <section class="box" id="archive"><span class="legend">ls -l archive/</span>
+    <div id="archive-list"><p class="note">earlier briefs collect here</p></div>
+  </section>
+
+  <section class="box" id="notes"><span class="legend">cat README</span>
+    <div class="notes" id="notes-box">
+      <p>Market values are weekly snapshots in US dollars, not live quotes. Non-US listings are converted at approximate spot rates. A row shows its own date when its quote is older than the snapshot.</p>
+      <p>Treemap tiles are sized by market value within the tier. Row bars are scaled to the largest company in that layer, so they compare companies within a layer, not across layers.</p>
+      <p>Week change uses the local-currency share price where both weeks have one, otherwise the USD market cap, and only where this week's quote is newer than last week's; a row whose delayed quote has not changed shows no move. Forward P/E is as published by the quote source; it is not meaningful for REITs or loss-making companies.</p>
+      <p>Coverage is a representative set of public companies per layer, not an index. Private labs (OpenAI, Anthropic, xAI) appear in the log when they move the chain, not in the table. Nothing here is investment advice.</p>
+    </div>
+  </section>
+
+  <div class="foot"><span><a href="/">← mehrabiani.com</a></span><span>AISC-MON</span><span>refreshes mondays 06:55 PT</span><span>best viewed at 80×25</span><span>not investment advice</span><span>EOF</span></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const TIERS = [
+    { id: 'demand',  name: 'DEMAND',         sub: 'who buys the compute',                                 tok: '--t1', ink: '--ink-t1' },
+    { id: 'systems', name: 'SYSTEMS',        sub: 'servers, racks and the network between them',          tok: '--t2', ink: '--ink-t2' },
+    { id: 'silicon', name: 'SILICON',        sub: 'chips and memory, and how they are built and bonded',  tok: '--t3', ink: '--ink-t3' },
+    { id: 'tools',   name: 'TOOLS & INPUTS', sub: 'equipment, materials and design software',             tok: '--t4', ink: '--ink-t4' },
+    { id: 'power',   name: 'POWER',          sub: 'electricity, distribution and cooling',                tok: '--t5', ink: '--ink-t5' },
+  ];
+  const LAYERS = [
+    { id: 'hyperscaler',       tier: 'demand',  name: 'hyperscalers',             gate: 'capex → installed accelerators' },
+    { id: 'datacenter-cloud',  tier: 'demand',  name: 'ai-clouds-and-datacenters', gate: 'MW of powered shell' },
+    { id: 'servers',           tier: 'systems', name: 'servers-and-racks',         gate: 'NVL72-class racks shipped' },
+    { id: 'networking-optics', tier: 'systems', name: 'networking-and-optics',     gate: '800G / 1.6T ports' },
+    { id: 'compute',           tier: 'silicon', name: 'compute-gpu-asic-cpu',      gate: 'accelerator units' },
+    { id: 'memory',            tier: 'silicon', name: 'memory-and-hbm',            gate: 'HBM bits (HBM4 12-Hi)' },
+    { id: 'foundry',           tier: 'silicon', name: 'foundry',                   gate: 'N3 / N2 wafers per month' },
+    { id: 'packaging',         tier: 'silicon', name: 'packaging-and-test',        gate: 'CoWoS wafers per month' },
+    { id: 'substrates',        tier: 'silicon', name: 'substrates-and-pcb',        gate: 'ABF substrate area' },
+    { id: 'equipment',         tier: 'tools',   name: 'equipment',                 gate: 'EUV, etch, bonder tool slots' },
+    { id: 'materials',         tier: 'tools',   name: 'materials-and-wafers',      gate: '300 mm wafers' },
+    { id: 'eda-ip',            tier: 'tools',   name: 'eda-and-ip',                gate: 'tape-outs' },
+    { id: 'energy',            tier: 'power',   name: 'energy',                    gate: 'GW under PPA' },
+    { id: 'power-cooling',     tier: 'power',   name: 'power-cooling-buildout',    gate: 'kW per rack, liquid-cooled' },
+    { id: 'policy',            tier: null,      name: 'policy-and-trade',          gate: '' },
+  ];
+  const tierById = Object.fromEntries(TIERS.map(t => [t.id, t]));
+  const layerById = Object.fromEntries(LAYERS.map(l => [l.id, l]));
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function parseDate(iso) { if (!iso) return null; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null; }
+  function fmtDate(iso, withYear) { const d = parseDate(iso); if (!d) return ''; return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + (withYear ? ', ' + d.getUTCFullYear() : ''); }
+  function daysBetween(a, b) { const da = parseDate(a), db = parseDate(b); if (!da || !db) return 0; return Math.round((db - da) / 86400000); }
+  function fmtB(b) {
+    if (b == null || !isFinite(b)) return '—';
+    if (b >= 1000) return '$' + (b / 1000).toFixed(b >= 10000 ? 1 : 2) + 'T';
+    if (b >= 100) return '$' + Math.round(b) + 'B';
+    if (b >= 10) return '$' + b.toFixed(1) + 'B';
+    return '$' + b.toFixed(2) + 'B';
+  }
+  function fmtPct(x, digits) { if (x == null || !isFinite(x)) return '—'; const d = digits == null ? 1 : digits; return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(d) + '%'; }
+  function arrow(x) { return x == null || !isFinite(x) ? '' : x > 0 ? '▲' : x < 0 ? '▼' : '='; }
+  function cls(x) { return x == null || !isFinite(x) ? 'muted' : x > 0 ? 'up' : x < 0 ? 'down' : ''; }
+  function fmtPE(x) { return x == null || !isFinite(x) ? '—' : (x >= 100 ? Math.round(x) : x.toFixed(1)) + '×'; }
+  function nextMonday(fromIso) {
+    const d = parseDate(fromIso) || new Date();
+    const dow = d.getUTCDay();
+    const add = ((8 - dow) % 7) || 7;
+    const n = new Date(d.getTime() + add * 86400000);
+    return n.toISOString().slice(0, 10);
+  }
+
+  // Squarified treemap (Bruls, Huizing, van Wijk). items: [{value, ...}] → [{item, x, y, w, h}]
+  function squarify(items, x, y, w, h) {
+    const out = [];
+    const list = items.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
+    const total = list.reduce((s, i) => s + i.value, 0);
+    if (!(total > 0) || w <= 0 || h <= 0) return out;
+    const scale = (w * h) / total;
+    let rx = x, ry = y, rw = w, rh = h, row = [];
+    const worst = (r, len) => { let s = 0, mx = 0, mn = Infinity; r.forEach(i => { const a = i.value * scale; s += a; if (a > mx) mx = a; if (a < mn) mn = a; }); return Math.max(len * len * mx / (s * s), s * s / (len * len * mn)); };
+    const layout = () => {
+      const s = row.reduce((a, i) => a + i.value * scale, 0);
+      if (rw >= rh) { const sw = s / rh; let yy = ry; row.forEach(i => { const hh = i.value * scale / sw; out.push({ item: i, x: rx, y: yy, w: sw, h: hh }); yy += hh; }); rx += sw; rw -= sw; }
+      else { const sh = s / rw; let xx = rx; row.forEach(i => { const ww = i.value * scale / sh; out.push({ item: i, x: xx, y: ry, w: ww, h: sh }); xx += ww; }); ry += sh; rh -= sh; }
+      row = [];
+    };
+    for (const i of list) {
+      if (rw <= 0.01 || rh <= 0.01) break;
+      const len = Math.min(rw, rh);
+      if (!row.length || worst(row.concat(i), len) <= worst(row, len)) row.push(i);
+      else { layout(); row.push(i); }
+    }
+    if (row.length && rw > 0.01 && rh > 0.01) layout();
+    return out;
+  }
+
+  function compute(universe, snaps) {
+    const latest = snaps[0] || null, prev = snaps[1] || null;
+    const rows = (universe.companies || []).map(c => {
+      const v = latest && latest.values ? latest.values[c.ticker] : null;
+      const p = prev && prev.values ? prev.values[c.ticker] : null;
+      let wk = null;
+      // a move needs a quote that is newer than last week's; the same delayed quote twice is no move at all
+      const newer = !!(v && p && (!v.as_of || !p.as_of || v.as_of > p.as_of));
+      if (v && p && newer) {
+        if (v.price != null && p.price != null && v.currency === p.currency && p.price > 0) wk = (v.price / p.price - 1) * 100;
+        else if (v.mcap_usd_b != null && p.mcap_usd_b != null && p.mcap_usd_b > 0) wk = (v.mcap_usd_b / p.mcap_usd_b - 1) * 100;
+      }
+      const layer = layerById[c.layer] || null;
+      return Object.assign({}, c, { v: v || null, p: p || null, wk: wk, tier: layer ? layer.tier : null });
+    });
+    const total = rows.reduce((s, r) => s + (r.v && r.v.mcap_usd_b || 0), 0);
+    let totalPrev = 0, totalNowComparable = 0;
+    rows.forEach(r => { if (r.wk != null && r.v.mcap_usd_b != null && r.p.mcap_usd_b != null) { totalPrev += r.p.mcap_usd_b; totalNowComparable += r.v.mcap_usd_b; } });
+    const totalWk = prev && totalPrev > 0 ? (totalNowComparable / totalPrev - 1) * 100 : null;
+    const tiers = TIERS.map(t => {
+      const rs = rows.filter(r => r.tier === t.id);
+      const now = rs.reduce((s, r) => s + (r.v && r.v.mcap_usd_b || 0), 0);
+      let pv = 0, nc = 0;
+      rs.forEach(r => { if (r.wk != null && r.v.mcap_usd_b != null && r.p.mcap_usd_b != null) { pv += r.p.mcap_usd_b; nc += r.v.mcap_usd_b; } });
+      return Object.assign({}, t, { rows: rs, total: now, wk: prev && pv > 0 ? (nc / pv - 1) * 100 : null, n: rs.length });
+    });
+    return { latest, prev, rows, total, totalWk, tiers };
+  }
+
+  function renderHeader(m) {
+    const el = $('asof');
+    if (!m.latest) { el.textContent = 'no snapshot yet. the first weekly refresh fills this page.'; return; }
+    const nextRun = nextMonday(m.latest.run_date || m.latest.as_of);
+    el.innerHTML = 'last snapshot <b>' + esc(fmtDate(m.latest.as_of, true)) + '</b> · ' + m.rows.length + ' companies · ' + TIERS.length + ' tiers · next refresh <b>' + esc(fmtDate(nextRun, false)) + '</b>'
+      + (m.prev ? ' · vs <b>' + esc(fmtDate(m.prev.as_of, false)) + '</b>' : '');
+    $('prompt').textContent = './aisc-mon --snapshot ' + (m.latest.as_of || 'latest');
+  }
+
+  function renderTape(m) {
+    const host = $('tape');
+    const items = m.rows.filter(r => r.v && r.v.mcap_usd_b != null).sort((a, b) => b.v.mcap_usd_b - a.v.mcap_usd_b)
+      .map(r => '<span class="it"><b>' + esc(r.ticker) + '</b> ' + esc(fmtB(r.v.mcap_usd_b)) + (m.prev && r.wk != null ? ' <span class="' + cls(r.wk) + '">' + arrow(r.wk) + esc(fmtPct(r.wk)) + '</span>' : '') + '</span>');
+    if (!items.length) { host.innerHTML = ''; return; }
+    const lead = '<span class="it"><b>TRACKED</b> ' + esc(fmtB(m.total)) + (m.prev ? ' <span class="' + cls(m.totalWk) + '">' + arrow(m.totalWk) + esc(fmtPct(m.totalWk)) + '</span>' : '') + '</span>';
+    const run = lead + items.join('');
+    const chars = run.replace(/<[^>]+>/g, '').length;
+    host.innerHTML = '<div class="track" style="--dur:' + Math.max(60, Math.round(chars * 0.11)) + 's">' + run + run + '</div>';
+  }
+
+  function renderTiles(m) {
+    const tiles = [];
+    tiles.push({ k: 'Tracked value', v: fmtB(m.total), s: m.rows.length + ' companies / ' + TIERS.length + ' tiers' });
+    if (m.prev) {
+      tiles.push({ k: 'Week change', v: '<span class="' + cls(m.totalWk) + '">' + arrow(m.totalWk) + fmtPct(m.totalWk) + '</span>', s: 'vs ' + fmtDate(m.prev.as_of, false) + ', companies with a newer quote' });
+      const movers = m.rows.filter(r => r.wk != null).sort((a, b) => b.wk - a.wk);
+      if (movers.length) {
+        const g = movers[0], l = movers[movers.length - 1];
+        tiles.push({ k: 'Top gainer', v: esc(g.ticker) + ' <span class="up">' + fmtPct(g.wk) + '</span>', s: esc(g.short || g.name) });
+        tiles.push({ k: 'Top decliner', v: esc(l.ticker) + ' <span class="down">' + fmtPct(l.wk) + '</span>', s: esc(l.short || l.name) });
+      }
+    } else {
+      const big = m.rows.filter(r => r.v && r.v.mcap_usd_b != null).sort((a, b) => b.v.mcap_usd_b - a.v.mcap_usd_b)[0];
+      if (big) tiles.push({ k: 'Largest', v: esc(big.ticker) + ' ' + fmtB(big.v.mcap_usd_b), s: (m.total ? (100 * big.v.mcap_usd_b / m.total).toFixed(0) + '% of tracked value' : '') });
+      const bt = m.tiers.slice().sort((a, b) => b.total - a.total)[0];
+      if (bt) tiles.push({ k: 'Largest tier', v: esc(bt.name) + ' ' + (m.total ? (100 * bt.total / m.total).toFixed(0) + '%' : ''), s: fmtB(bt.total) + ' across ' + bt.n + ' companies' });
+    }
+    const box = $('tiles');
+    box.className = 'tiles n' + tiles.length;
+    box.innerHTML = tiles.map(t => '<div class="tile"><div class="k">' + t.k + '</div><div class="v">' + t.v + '</div><div class="s">' + t.s + '</div></div>').join('');
+  }
+
+  function renderStack(m) {
+    const host = $('stackviz');
+    if (!m.total) { host.innerHTML = ''; return; }
+    const maxT = Math.max.apply(null, m.tiers.map(t => t.total));
+    host.innerHTML = '<div class="cap"><span>the stack, top to bottom</span><span>share of tracked value' + (m.prev ? ' · week' : '') + '</span></div>'
+      + m.tiers.map(t => {
+        const share = 100 * t.total / m.total, wpct = maxT ? 100 * t.total / maxT : 0;
+        const inside = wpct >= 40;
+        const pos = inside ? 'right:calc(' + (100 - wpct).toFixed(1) + '% + 6px)' : 'left:calc(' + wpct.toFixed(1) + '% + 6px)';
+        return '<a class="band" href="#tier-' + t.id + '" style="--c:var(' + t.tok + ');--ink:var(' + t.ink + ')" title="' + esc(t.name) + ': ' + esc(fmtB(t.total)) + ', ' + share.toFixed(1) + '% of tracked value">'
+          + '<span class="bl"><i></i>' + esc(t.id) + '/ <small>' + t.n + ' co</small></span>'
+          + '<span class="bt"><span class="bf" style="width:' + wpct.toFixed(1) + '%"></span><span class="bv' + (inside ? ' in' : '') + '" style="' + pos + '">' + share.toFixed(1) + '%</span></span>'
+          + '<span class="bn num">' + fmtB(t.total) + '</span>'
+          + '<span class="bd num ' + cls(t.wk) + '">' + (m.prev ? arrow(t.wk) + fmtPct(t.wk) : '') + '</span></a>';
+      }).join('')
+      + '<p class="note" style="margin-top:10px">who buys → what ships → what is inside → what builds it → what powers it. click a tier to jump to it.</p>';
+  }
+
+  function chipFor(layerId) {
+    const l = layerById[layerId]; const t = l && l.tier ? tierById[l.tier] : null;
+    return '<span class="chip"><i style="--c:' + (t ? 'var(' + t.tok + ')' : 'var(--fg-3)') + '"></i>' + esc(l ? l.name : layerId) + '</span>';
+  }
+
+  function briefHTML(b, m, withMovers) {
+    const items = (b.items || []).map(it => {
+      const cos = (it.companies || []).map(esc).join(' ');
+      const src = it.source_url ? '<a href="' + esc(it.source_url) + '" target="_blank" rel="noopener">' + esc(it.source_name || 'source') + '</a>' : esc(it.source_name || '');
+      return '<li><div class="h">' + esc(it.headline) + '</div><p>' + esc(it.summary) + '</p><div class="meta">' + (it.date ? '<span class="mono">[' + esc(fmtDate(it.date, false)) + ']</span>' : '') + chipFor(it.layer) + (cos ? '<span class="mono">' + cos + '</span>' : '') + (src ? '<span>' + src + '</span>' : '') + '</div></li>';
+    }).join('');
+    let movers = '';
+    if (withMovers) {
+      const ranked = m.rows.filter(r => r.wk != null).sort((a, b) => b.wk - a.wk);
+      if (ranked.length >= 4) {
+        const up = ranked.slice(0, 5), dn = ranked.slice(-5).reverse();
+        const list = (arr) => arr.map(r => '<div class="mv"><span><b class="bright">' + esc(r.ticker) + '</b> <span class="muted">' + esc(r.short || r.name) + '</span></span><span class="num ' + cls(r.wk) + '">' + arrow(r.wk) + fmtPct(r.wk) + '</span></div>').join('');
+        movers = '<div class="movers"><h4>movers this week</h4><div class="cols"><div>' + list(up) + '</div><div>' + list(dn) + '</div></div></div>';
+      } else if (b.movers_note) {
+        movers = '<p class="note">' + esc(b.movers_note) + '</p>';
+      }
+    }
+    return '<h3>' + esc(b.title || ('Week of ' + fmtDate(b.date, true))) + '</h3>' + (b.intro ? '<p class="intro">' + esc(b.intro) + '</p>' : '') + '<ul class="items">' + items + '</ul>' + movers;
+  }
+
+  function renderBrief(m, briefs) {
+    const b = briefs[0];
+    if (!b) return;
+    const leg = $('week').querySelector('.legend');
+    if (leg) leg.textContent = 'tail -n ' + ((b.items || []).length || 12) + ' week.log  # ' + (b.week_label || fmtDate(b.date, true));
+    $('brief').innerHTML = briefHTML(b, m, true);
+  }
+
+  function treemapSVG(t, m, width) {
+    if (!(t.total > 0)) return '';
+    const H = Math.round(Math.max(150, Math.min(250, width * 0.46)));
+    const layers = LAYERS.filter(l => l.tier === t.id).map(l => {
+      const rows = t.rows.filter(r => r.layer === l.id && r.v && r.v.mcap_usd_b > 0);
+      return { id: l.id, name: l.name, rows: rows, value: rows.reduce((s, r) => s + r.v.mcap_usd_b, 0) };
+    });
+    const GAP = 4, TGAP = 2, CAP = 15, CW = 6.6;
+    let svg = '';
+    squarify(layers, 0, 0, width, H).forEach(g => {
+      const gx = g.x + GAP / 2, gy = g.y + GAP / 2, gw = g.w - GAP, gh = g.h - GAP;
+      if (gw <= 2 || gh <= 2) return;
+      const withCap = gh >= 44 && gw >= g.item.name.length * 6.3 + 8;
+      const cy = withCap ? gy + CAP : gy, ch = withCap ? gh - CAP : gh;
+      if (withCap) svg += '<text class="gcap" x="' + (gx + 1).toFixed(1) + '" y="' + (gy + 10.5).toFixed(1) + '">' + esc(g.item.name) + '</text>';
+      squarify(g.item.rows.map(r => ({ value: r.v.mcap_usd_b, r: r })), gx, cy, gw, ch).forEach(tl => {
+        const x = tl.x + TGAP / 2, y = tl.y + TGAP / 2, w = tl.w - TGAP, h = tl.h - TGAP;
+        if (w <= 0.5 || h <= 0.5) return;
+        const r = tl.item.r, share = 100 * tl.item.value / t.total;
+        const title = r.ticker + ' · ' + (r.short || r.name) + '\n' + fmtB(r.v.mcap_usd_b) + ' · ' + share.toFixed(1) + '% of ' + t.name + (m.prev && r.wk != null ? '\n' + fmtPct(r.wk) + ' this week' : '');
+        const fits = (s) => w >= s.length * CW + 8;
+        let label = '';
+        const name = [r.ticker, r.short || '', r.ticker.split('.')[0]].filter(Boolean).find(fits);
+        if (h >= 17 && name) {
+          const lines = [name];
+          if (h >= 31 && fits(fmtB(r.v.mcap_usd_b))) lines.push(fmtB(r.v.mcap_usd_b));
+          if (m.prev && r.wk != null && h >= 45 && fits(arrow(r.wk) + fmtPct(r.wk))) lines.push(arrow(r.wk) + fmtPct(r.wk));
+          label = lines.map((s, i) => '<text x="' + (x + 5).toFixed(1) + '" y="' + (y + 12.5 + i * 13).toFixed(1) + '"' + (i === 0 ? ' font-weight="600"' : '') + '>' + esc(s) + '</text>').join('');
+        }
+        svg += '<g class="tl"><title>' + esc(title) + '</title><rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"/>' + label + '</g>';
+      });
+    });
+    return '<svg class="tm" viewBox="0 0 ' + width + ' ' + H + '" width="' + width + '" height="' + H + '" role="img" aria-label="Companies in ' + esc(t.name) + ' sized by market value" style="--c:var(' + t.tok + ');--ink:var(' + t.ink + ')">' + svg + '</svg>';
+  }
+
+  function renderTiers(m) {
+    const staleAfter = 3;
+    const host = $('tiers');
+    host.classList.toggle('noprev', !m.prev);
+    $('stack-note').textContent = m.prev ? 'tiles sized by market value · week change · forward p/e' : 'tiles sized by market value · week changes start ' + fmtDate(nextMonday(m.latest ? (m.latest.run_date || m.latest.as_of) : ''), false);
+    const vizW = Math.max(240, Math.min(850, host.clientWidth));
+    host.innerHTML = m.tiers.map(t => {
+      const layers = LAYERS.filter(l => l.tier === t.id).map(l => {
+        const rs = t.rows.filter(r => r.layer === l.id).sort((a, b) => ((b.v && b.v.mcap_usd_b) || 0) - ((a.v && a.v.mcap_usd_b) || 0));
+        if (!rs.length) return '';
+        const lsum = rs.reduce((s, r) => s + (r.v && r.v.mcap_usd_b || 0), 0);
+        const lmax = Math.max.apply(null, rs.map(r => (r.v && r.v.mcap_usd_b) || 0));
+        const rows = rs.map(r => {
+          const v = r.v || {};
+          const stale = m.latest && v.as_of && daysBetween(v.as_of, m.latest.as_of) > staleAfter;
+          const wpct = lmax > 0 && v.mcap_usd_b ? 100 * v.mcap_usd_b / lmax : 0;
+          return '<div class="row"><div class="co"><span class="tk">' + esc(r.ticker) + '<small>' + esc(r.short || r.name) + '</small></span><span class="role">' + esc(r.role || '') + '</span>' + (stale ? '<span class="st">quote as of ' + esc(fmtDate(v.as_of, false)) + '</span>' : '') + '<span class="bar4" aria-hidden="true"><i style="--c:var(' + t.tok + ');--w:' + wpct.toFixed(1) + '%"></i></span></div>'
+            + '<div class="num">' + fmtB(v.mcap_usd_b) + '</div>'
+            + (m.prev ? '<div class="num ' + cls(r.wk) + '">' + arrow(r.wk) + fmtPct(r.wk) + '</div>' : '')
+            + '<div class="num pe">' + fmtPE(v.fwd_pe) + '</div></div>';
+        }).join('');
+        return '<div class="layer"><div class="layer-head"><h4>' + esc(l.name) + '/</h4><span class="lsum num">' + fmtB(lsum) + (t.total ? ' · ' + (100 * lsum / t.total).toFixed(lsum / t.total < 0.1 ? 1 : 0) + '% of tier' : '') + '</span><span class="gate">gating unit: ' + esc(l.gate) + '</span></div><div class="cols-head"><span>company</span><span>mkt cap</span>' + (m.prev ? '<span>week</span>' : '') + '<span>fwd p/e</span></div>' + rows + '</div>';
+      }).join('');
+      const share = m.total ? (100 * t.total / m.total).toFixed(1) + '% of tracked' : '';
+      const top = t.rows.filter(r => r.v && r.v.mcap_usd_b > 0).sort((a, b) => b.v.mcap_usd_b - a.v.mcap_usd_b).slice(0, 3)
+        .map(r => '<b>' + esc(r.ticker) + '</b> ' + (100 * r.v.mcap_usd_b / t.total).toFixed(0) + '%').join(' · ');
+      const viz = t.total > 0 ? '<div class="tier-viz">' + treemapSVG(t, m, vizW) + '<div class="tcap">' + top + ' of this tier</div></div>' : '';
+      return '<section class="tier" id="tier-' + t.id + '" aria-label="' + esc(t.name) + '"><div class="tier-head"><div class="nm"><i style="--c:var(' + t.tok + ')"></i><h3>' + esc(t.name) + '</h3></div><div class="tot"><div class="v">' + fmtB(t.total) + '</div><div class="d ' + cls(t.wk) + '">' + (m.prev ? arrow(t.wk) + fmtPct(t.wk) + ' wk' : share) + '</div></div><div class="sub">' + esc(t.sub) + ' · ' + t.n + ' companies</div></div>' + viz + layers + '</section>';
+    }).join('');
+  }
+
+  function renderTrend(history) {
+    const box = $('trend-box');
+    const pts = (history || []).map(h => ({ as_of: h.as_of, total: h.total_usd_b })).filter(p => p.total > 0);
+    if (pts.length < 2) {
+      box.innerHTML = '<p class="note">history begins ' + esc(fmtDate(pts[0] ? pts[0].as_of : '', true)) + '. a point is added every week; the line appears once there are two.</p>';
+      return;
+    }
+    const W = Math.max(300, Math.min(850, box.clientWidth || 340)), H = Math.round(W * 0.42), padL = 56, padR = 20, padT = 16, padB = 32;
+    const xs = pts.map((p, i) => padL + (W - padL - padR) * (pts.length === 1 ? 0 : i / (pts.length - 1)));
+    const vals = pts.map(p => p.total);
+    let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    const span = (hi - lo) || hi * 0.1 || 1; lo -= span * 0.15; hi += span * 0.15; if (lo < 0) lo = 0;
+    const y = v => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
+    const path = pts.map((p, i) => (i ? 'L' : 'M') + xs[i].toFixed(1) + ' ' + y(p.total).toFixed(1)).join(' ');
+    const area = path + ' L' + xs[xs.length - 1].toFixed(1) + ' ' + (H - padB) + ' L' + xs[0].toFixed(1) + ' ' + (H - padB) + ' Z';
+    const ticks = [lo, (lo + hi) / 2, hi].map(v => '<g><line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="var(--line)" stroke-width="1"/><text x="' + (padL - 8) + '" y="' + (y(v) + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="var(--fg-3)" font-family="var(--font-mono)">' + esc(fmtB(v)) + '</text></g>').join('');
+    const step = Math.max(1, Math.ceil(pts.length / 6));
+    const xlabels = pts.map((p, i) => (i % step === 0 || i === pts.length - 1) ? '<text x="' + xs[i].toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="var(--fg-3)" font-family="var(--font-mono)">' + esc(fmtDate(p.as_of, false)) + '</text>' : '').join('');
+    const last = pts[pts.length - 1];
+    const dots = pts.map((p, i) => '<circle cx="' + xs[i].toFixed(1) + '" cy="' + y(p.total).toFixed(1) + '" r="' + (i === pts.length - 1 ? 5 : 3) + '" fill="var(--fg)" stroke="var(--bg)" stroke-width="2"><title>' + esc(fmtDate(p.as_of, true)) + ': ' + esc(fmtB(p.total)) + '</title></circle>').join('');
+    box.innerHTML = '<div class="th"><span>tracked market value, usd</span><span class="num bright">' + esc(fmtB(last.total)) + ' on ' + esc(fmtDate(last.as_of, false)) + '</span></div>'
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Tracked market value by week">' + ticks + '<path d="' + area + '" fill="var(--fg)" fill-opacity="0.12"/><path d="' + path + '" fill="none" stroke="var(--fg)" stroke-width="2" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px rgba(53,240,106,.6))"/>' + dots + xlabels + '</svg>';
+  }
+
+  function renderArchive(m, entries) {
+    const host = $('archive-list');
+    if (!entries || !entries.length) { host.innerHTML = '<p class="note">earlier briefs collect here from the second week on</p>'; return; }
+    host.innerHTML = entries.map(e => '<details data-date="' + esc(e.date) + '"><summary><span class="mono">' + esc(e.date || '') + '</span><span>' + esc(e.title || e.week_label || '') + '</span></summary><div class="brief"><p class="note">loading…</p></div></details>').join('');
+    host.querySelectorAll('details').forEach(d => {
+      d.addEventListener('toggle', () => {
+        if (!d.open || d.dataset.loaded) return;
+        d.dataset.loaded = '1';
+        const body = d.querySelector('.brief');
+        getJSON('briefs/' + d.dataset.date + '.json')
+          .then(b => { body.innerHTML = briefHTML(b, m, false); })
+          .catch(() => { body.innerHTML = '<p class="note">could not load this brief</p>'; d.dataset.loaded = ''; });
+      });
+    });
+  }
+
+  function renderNotes(m) {
+    if (!m.latest) return;
+    const extra = [];
+    if (m.latest.source_note) extra.push('<p>sources: ' + esc(m.latest.source_note) + '</p>');
+    if (m.latest.fx_note) extra.push('<p>fx: ' + esc(m.latest.fx_note) + '</p>');
+    $('notes-box').insertAdjacentHTML('afterbegin', extra.join(''));
+  }
+
+  function showStatus(msg) { $('asof').textContent = msg; }
+
+  let lastM = null, lastHistory = null, lastW = 0, resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const w = $('tiers').clientWidth;
+      if (lastM && Math.abs(w - lastW) > 24) { lastW = w; renderTiers(lastM); renderTrend(lastHistory); }
+    }, 200);
+  });
+
+  const DATA = new URL('../../data/aisc/', document.baseURI).href;
+  async function getJSON(path) {
+    const res = await fetch(DATA + path, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(path + ' → HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function boot() {
+    try {
+      const [manifest, universe] = await Promise.all([getJSON('manifest.json'), getJSON('universe.json')]);
+      const dates = (manifest.snapshots || []).slice(0, 2);
+      if (!dates.length) { showStatus('no snapshot yet — the weekly refresh fills this page'); return; }
+      const snaps = await Promise.all(dates.map(d => getJSON('snapshots/' + d + '.json')));
+      const entries = manifest.briefs || [];
+      const latestBrief = entries.length ? await getJSON('briefs/' + entries[0].date + '.json').catch(() => null) : null;
+      const history = manifest.history || [];
+      const m = compute(universe, snaps);
+      lastM = m; lastHistory = history; lastW = $('tiers').clientWidth;
+      renderHeader(m); renderTape(m); renderTiles(m); renderStack(m);
+      if (latestBrief) renderBrief(m, [latestBrief]);
+      renderTiers(m); renderTrend(history); renderArchive(m, entries.slice(1)); renderNotes(m);
+      if (location.hash && /^#[\w-]+$/.test(location.hash)) { const target = document.querySelector(location.hash); if (target) target.scrollIntoView(); }
+    } catch (e) {
+      showStatus('could not load the data (' + (e && e.message ? e.message : 'error') + '). reload to try again.');
+    }
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
