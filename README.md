@@ -8,6 +8,14 @@ As fascinating as the science behind chip-making is, a business has to make each
 
 ## Files
 
-- `index.html` — the page, exactly as deployed. Plain HTML with no build step; it reads JSON from `../../data/aisc/` on the site.
+- `index.html` — the page, exactly as deployed.
+  Plain HTML with no build step; it reads the JSON in `data/aisc/` straight from this repo over raw.githubusercontent.com.
 - `scripts/aisc_update.py` — installs a week's snapshot and brief and rebuilds the manifest. It refuses malformed dates, unknown tickers, and any week where fewer than half the companies carry a market cap.
-- `data/README.md` — the data contract. The data itself lives on the site: https://mehrabiani.com/data/aisc/manifest.json
+- `data/aisc/` — the weekly JSON, with the data contract in `data/aisc/README.md`.
+  The live site reads these files directly, so a merge here is live within about five minutes.
+
+## Publishing
+
+A week is published by a pull request into `main` that adds one snapshot and one brief under `data/aisc/`.
+The `aisc-guard` check rejects a pull request that touches anything outside `data/aisc/`, edits or deletes an earlier week, or fails `scripts/aisc_update.py`.
+The check is required on `main`, so a week goes live only after it passes.
