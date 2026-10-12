@@ -1,0 +1,27 @@
+name: aisc-guard
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  aisc-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Only data/aisc/ may change
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$base"..."$head")
+          echo "$changed"
+          bad=$(echo "$changed" | grep -v '^data/aisc/' || true)
+          if [ -n "$bad" ]; then echo "::error::Files outside data/aisc/ changed:"; echo "$bad"; exit 1; fi
+          modified=$(git diff --name-only --diff-filter=MDR "$base"..."$head" | grep -E '^data/aisc/(snapshots|briefs)/' || true)
+          if [ -n "$modified" ]; then echo "::error::Existing snapshots/briefs modified or deleted:"; echo "$modified"; exit 1; fi
+      - name: Validate data
+        run: python3 -I scripts/aisc_update.py

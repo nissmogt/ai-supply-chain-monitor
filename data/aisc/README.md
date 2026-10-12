@@ -1,8 +1,8 @@
 # AI Supply Chain Monitor — data
 
-Static JSON behind https://mehrabiani.com/projects/aisc/. The page is plain HTML and fetches these
-files directly; there is no build step and no server. Pushing to `master`
-redeploys Pages, so publishing a new week means committing new JSON.
+Static JSON behind https://mehrabiani.com/projects/aisc/.
+The page is plain HTML and fetches these files directly from this repo over raw.githubusercontent.com, so there is no build step and no deploy.
+A week is live about five minutes after its pull request merges into `main`.
 
 ## Files
 
@@ -53,9 +53,13 @@ A missing value is `null`, never a carried-forward number.
 ## Publishing a week
 
 ```sh
+git checkout -b aisc-<date> main
 scripts/aisc_update.py --snapshot new-snapshot.json --brief new-brief.json
-git add data/aisc && git commit -m "aisc: week of <date>" && git push
+git add data/aisc && git commit -m "aisc: week of <date>" && git push origin aisc-<date>
 ```
+
+Open a pull request into `main`.
+The `aisc-guard` check must pass before it can merge: only `data/aisc/` may change, earlier snapshots and briefs stay untouched, and the script must exit 0.
 
 The script refuses a snapshot whose tickers are not in `universe.json`, whose
 dates are malformed, or where fewer than half the companies have a market cap,
