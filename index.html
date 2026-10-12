@@ -607,7 +607,7 @@ details .brief { padding: 4px 0 14px; }
     }, 200);
   });
 
-  const DATA = new URL('../../data/aisc/', document.baseURI).href;
+  const DATA = 'https://raw.githubusercontent.com/nissmogt/ai-supply-chain-monitor/main/data/aisc/';
   async function getJSON(path) {
     const res = await fetch(DATA + path, { cache: 'no-cache' });
     if (!res.ok) throw new Error(path + ' → HTTP ' + res.status);
