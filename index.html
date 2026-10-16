@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="A weekly snapshot of the public companies that build AI infrastructure — from power and equipment through silicon, packaging and servers to the hyperscalers that buy the compute.">
+<meta name="description" content="Monday and Friday snapshots of the public companies that build AI infrastructure — from power and equipment through silicon, packaging and servers to the hyperscalers that buy the compute.">
 <meta name="color-scheme" content="dark">
 <meta property="og:title" content="AI Supply Chain Monitor">
 <meta property="og:description" content="Weekly market values and news across the AI infrastructure supply chain.">
@@ -17,7 +17,7 @@
 :root { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
-/* Layout: a phosphor-green terminal session, read top to bottom — banner and prompt, ticker tape, headline readouts, the stack as a top-to-bottom chart, this week's log, each tier as a framed treemap plus its layers, history, archive, README. Single deliberate theme: dark CRT. */
+/* Layout: a phosphor-green terminal session, read top to bottom — banner and prompt, ticker tape, headline readouts, the stack as a top-to-bottom chart, this run's log, each tier as a framed treemap plus its layers, history, archive, README. Single deliberate theme: dark CRT. */
 :root {
   color-scheme: dark;
   --bg: #050806;
@@ -120,6 +120,15 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 1px dash
   .band .bd:empty { display: none; }
 }
 
+/* compare control */
+.compare { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 0; font-family: var(--font-mono); font-size: 12px; }
+.compare .cl { color: var(--fg-3); margin-right: 4px; }
+.compare .cb { background: transparent; color: var(--fg-2); border: 1px solid var(--line); padding: 3px 9px; font: inherit; cursor: pointer; border-radius: 2px; }
+.compare .cb small { color: var(--fg-3); font-size: 11px; margin-left: 4px; }
+.compare .cb.on { color: var(--bg); background: var(--fg); border-color: var(--fg); }
+.compare .cb.on small { color: var(--bg); opacity: .8; }
+.compare .cb:disabled { opacity: .35; cursor: default; }
+.compare .cb:not(:disabled):not(.on):hover { color: var(--fg); border-color: var(--fg-2); }
 /* week log */
 .brief { display: grid; gap: 12px; }
 .brief h3 { margin: 0; font-family: var(--font-display); font-size: 28px; line-height: 1.05; color: var(--bright); text-shadow: var(--glow); font-weight: 400; text-wrap: balance; }
@@ -223,18 +232,19 @@ details .brief { padding: 4px 0 14px; }
  / _ \ | |\__ \ (__  | |\/| | (_) | .` |
 /_/ \_\___|___/\___| |_|  |_|\___/|_|\_|</pre>
       <div class="sysline" id="sysline">
-        <div>AI SUPPLY CHAIN MONITOR · weekly snapshot</div>
+        <div>AI SUPPLY CHAIN MONITOR · monday and friday snapshots</div>
         <div id="asof">loading latest snapshot…</div>
       </div>
     </div>
     <div class="prompt cursor" id="prompt">./aisc-mon --snapshot latest</div>
     <nav class="jump" aria-label="Sections">
-      <a href="#week">this week</a>
+      <a href="#week">this run</a>
       <a href="#stack">the stack</a>
       <a href="#trend">trend</a>
       <a href="#archive">archive</a>
       <a href="#notes">readme</a>
     </nav>
+    <div class="compare" id="compare" aria-label="Compare against"></div>
   </header>
 
   <div class="tape" id="tape" aria-label="Ticker tape"></div>
@@ -251,7 +261,7 @@ details .brief { padding: 4px 0 14px; }
   </section>
 
   <section class="box" id="week"><span class="legend">tail -n 12 week.log</span>
-    <div class="brief" id="brief"><p class="note">the weekly brief appears here after the first refresh</p></div>
+    <div class="brief" id="brief"><p class="note">the brief appears here after the first refresh</p></div>
   </section>
 
   <section class="box" id="stack"><span class="legend">tree -L 2 stack/</span>
@@ -262,7 +272,7 @@ details .brief { padding: 4px 0 14px; }
   </section>
 
   <section class="box" id="trend"><span class="legend">plot history.dat</span>
-    <div class="trend" id="trend-box"><p class="note">a point is added every week</p></div>
+    <div class="trend" id="trend-box"><p class="note">a point is added every monday and friday</p></div>
   </section>
 
   <section class="box" id="archive"><span class="legend">ls -l archive/</span>
@@ -271,14 +281,14 @@ details .brief { padding: 4px 0 14px; }
 
   <section class="box" id="notes"><span class="legend">cat README</span>
     <div class="notes" id="notes-box">
-      <p>Market values are weekly snapshots in US dollars, not live quotes. Non-US listings are converted at approximate spot rates. A row shows its own date when its quote is older than the snapshot.</p>
+      <p>Market values are Monday and Friday closing snapshots in US dollars, not live quotes. The compare control picks the baseline: the previous run, this week's Monday (open to close), the same weekday a week earlier, or the last snapshot of the previous month. A choice is greyed out until the data for it exists. Non-US listings are converted at approximate spot rates. A row shows its own date when its quote is older than the snapshot.</p>
       <p>Treemap tiles are sized by market value within the tier. Row bars are scaled to the largest company in that layer, so they compare companies within a layer, not across layers.</p>
-      <p>Week change uses the local-currency share price where both weeks have one, otherwise the USD market cap, and only where this week's quote is newer than last week's; a row whose delayed quote has not changed shows no move. Forward P/E is as published by the quote source; it is not meaningful for REITs or loss-making companies.</p>
+      <p>Change uses the local-currency share price where both snapshots have one, otherwise the USD market cap, and only where the newer quote is dated after the baseline's; a row whose delayed quote has not changed shows no move. Where the price move and the market-cap move disagree by more than a quarter, as after a stock split, the market-cap move is used. Forward P/E is as published by the quote source; it is not meaningful for REITs or loss-making companies.</p>
       <p>Coverage is a representative set of public companies per layer, not an index. Private labs (OpenAI, Anthropic, xAI) appear in the log when they move the chain, not in the table. Nothing here is investment advice.</p>
     </div>
   </section>
 
-  <div class="foot"><span><a href="/">← mehrabiani.com</a></span><span>AISC-MON</span><span>refreshes mondays 06:55 PT</span><span>best viewed at 80×25</span><span>not investment advice</span><span>EOF</span></div>
+  <div class="foot"><span><a href="/">← mehrabiani.com</a></span><span>AISC-MON</span><span>refreshes mon and fri 14:00 PT</span><span>best viewed at 80×25</span><span>not investment advice</span><span>EOF</span></div>
 </div>
 
 <script>
@@ -327,15 +337,42 @@ details .brief { padding: 4px 0 14px; }
   function arrow(x) { return x == null || !isFinite(x) ? '' : x > 0 ? '▲' : x < 0 ? '▼' : '='; }
   function cls(x) { return x == null || !isFinite(x) ? 'muted' : x > 0 ? 'up' : x < 0 ? 'down' : ''; }
   function fmtPE(x) { return x == null || !isFinite(x) ? '—' : (x >= 100 ? Math.round(x) : x.toFixed(1)) + '×'; }
-  function nextMonday(fromIso) {
-    const d = parseDate(fromIso) || new Date();
-    const dow = d.getUTCDay();
-    const add = ((8 - dow) % 7) || 7;
-    const n = new Date(d.getTime() + add * 86400000);
-    return n.toISOString().slice(0, 10);
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function weekday(iso) { const d = parseDate(iso); return d ? d.getUTCDay() : -1; }
+  function addDays(iso, n) { const d = parseDate(iso); if (!d) return ''; d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function nextRunDate(fromIso) {
+    // runs land on monday and friday; the next one after a given snapshot date
+    const wd = weekday(fromIso); if (wd < 0) return '';
+    const ahead = wd < 1 ? 1 - wd : wd < 5 ? 5 - wd : 8 - wd;
+    return addDays(fromIso, ahead);
   }
-
-  // Squarified treemap (Bruls, Huizing, van Wijk). items: [{value, ...}] → [{item, x, y, w, h}]
+  function mondayOf(iso) { const wd = weekday(iso); return wd < 0 ? '' : addDays(iso, wd === 0 ? -6 : 1 - wd); }
+  function compareModes(dates) {
+    // dates are snapshot dates, newest first; each mode names the baseline it compares the latest against, or null when the data does not exist yet
+    const latest = dates[0], older = dates.slice(1);
+    const pick = (lo, hi) => older.find(d => d >= lo && d <= hi) || null;
+    const mon = mondayOf(latest);
+    const week = latest > mon ? pick(mon, addDays(latest, -1)) : null;
+    const wow = older.find(d => d === addDays(latest, -7)) || pick(addDays(latest, -9), addDays(latest, -5));
+    const firstOfMonth = latest.slice(0, 8) + '01';
+    const mom = older.find(d => d < firstOfMonth) || null;
+    return [
+      { id: 'prev',  label: 'Since last run',   hint: 'vs the previous snapshot',             date: older[0] || null },
+      { id: 'week',  label: 'This week',        hint: 'vs this week’s monday snapshot',  date: week },
+      { id: 'wow',   label: 'Week over week',   hint: 'vs the snapshot a week earlier',        date: wow || null },
+      { id: 'month', label: 'Month over month', hint: 'vs the last snapshot of the previous month', date: mom },
+    ];
+  }
+  function renderCompare(modes, mode, onPick) {
+    const host = $('compare');
+    if (!host) return;
+    host.innerHTML = '<span class="cl">compare</span>' + modes.map(x => '<button type="button" class="cb' + (x.id === mode.id ? ' on' : '') + '"' + (x.date ? '' : ' disabled') + ' data-id="' + x.id + '" title="' + esc(x.hint + (x.date ? ': ' + fmtDate(x.date, true) : ' (no snapshot yet)')) + '">' + esc(x.label) + (x.date ? ' <small>' + esc(fmtDate(x.date, false)) + '</small>' : '') + '</button>').join('');
+    host.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      if (b.disabled || b.dataset.id === mode.id) return;
+      history.replaceState(null, '', '#cmp=' + b.dataset.id);
+      onPick(b.dataset.id);
+    }));
+  }
   function squarify(items, x, y, w, h) {
     const out = [];
     const list = items.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
@@ -369,8 +406,12 @@ details .brief { padding: 4px 0 14px; }
       // a move needs a quote that is newer than last week's; the same delayed quote twice is no move at all
       const newer = !!(v && p && (!v.as_of || !p.as_of || v.as_of > p.as_of));
       if (v && p && newer) {
-        if (v.price != null && p.price != null && v.currency === p.currency && p.price > 0) wk = (v.price / p.price - 1) * 100;
-        else if (v.mcap_usd_b != null && p.mcap_usd_b != null && p.mcap_usd_b > 0) wk = (v.mcap_usd_b / p.mcap_usd_b - 1) * 100;
+        const byPrice = v.price != null && p.price != null && v.currency === p.currency && p.price > 0 ? v.price / p.price : null;
+        const byCap = v.mcap_usd_b != null && p.mcap_usd_b != null && p.mcap_usd_b > 0 ? v.mcap_usd_b / p.mcap_usd_b : null;
+        // a split or a share-count change moves the price without moving the company; when the two ratios disagree by more than a quarter, trust the market cap
+        const split = byPrice != null && byCap != null && Math.abs(byPrice / byCap - 1) > 0.25;
+        const ratio = byPrice != null && !split ? byPrice : byCap;
+        if (ratio != null) wk = (ratio - 1) * 100;
       }
       const layer = layerById[c.layer] || null;
       return Object.assign({}, c, { v: v || null, p: p || null, wk: wk, tier: layer ? layer.tier : null });
@@ -386,15 +427,16 @@ details .brief { padding: 4px 0 14px; }
       rs.forEach(r => { if (r.wk != null && r.v.mcap_usd_b != null && r.p.mcap_usd_b != null) { pv += r.p.mcap_usd_b; nc += r.v.mcap_usd_b; } });
       return Object.assign({}, t, { rows: rs, total: now, wk: prev && pv > 0 ? (nc / pv - 1) * 100 : null, n: rs.length });
     });
-    return { latest, prev, rows, total, totalWk, tiers };
+    const span = prev ? fmtDate(prev.as_of, false) + ' → ' + fmtDate(latest.as_of, false) : '';
+    return { latest, prev, rows, total, totalWk, tiers, span: span, spanLabel: 'Change' };
   }
 
   function renderHeader(m) {
     const el = $('asof');
-    if (!m.latest) { el.textContent = 'no snapshot yet. the first weekly refresh fills this page.'; return; }
-    const nextRun = nextMonday(m.latest.run_date || m.latest.as_of);
+    if (!m.latest) { el.textContent = 'no snapshot yet. the first refresh fills this page.'; return; }
+    const nextRun = nextRunDate(m.latest.run_date || m.latest.as_of);
     el.innerHTML = 'last snapshot <b>' + esc(fmtDate(m.latest.as_of, true)) + '</b> · ' + m.rows.length + ' companies · ' + TIERS.length + ' tiers · next refresh <b>' + esc(fmtDate(nextRun, false)) + '</b>'
-      + (m.prev ? ' · vs <b>' + esc(fmtDate(m.prev.as_of, false)) + '</b>' : '');
+      + (m.prev ? ' · vs <b>' + esc(fmtDate(m.prev.as_of, false)) + '</b> (' + esc(m.span) + ')' : '');
     $('prompt').textContent = './aisc-mon --snapshot ' + (m.latest.as_of || 'latest');
   }
 
@@ -413,7 +455,7 @@ details .brief { padding: 4px 0 14px; }
     const tiles = [];
     tiles.push({ k: 'Tracked value', v: fmtB(m.total), s: m.rows.length + ' companies / ' + TIERS.length + ' tiers' });
     if (m.prev) {
-      tiles.push({ k: 'Week change', v: '<span class="' + cls(m.totalWk) + '">' + arrow(m.totalWk) + fmtPct(m.totalWk) + '</span>', s: 'vs ' + fmtDate(m.prev.as_of, false) + ', companies with a newer quote' });
+      tiles.push({ k: m.spanLabel, v: '<span class="' + cls(m.totalWk) + '">' + arrow(m.totalWk) + fmtPct(m.totalWk) + '</span>', s: fmtDate(m.prev.as_of, false) + ' → ' + fmtDate(m.latest.as_of, false) + ', companies with a newer quote' });
       const movers = m.rows.filter(r => r.wk != null).sort((a, b) => b.wk - a.wk);
       if (movers.length) {
         const g = movers[0], l = movers[movers.length - 1];
@@ -435,7 +477,7 @@ details .brief { padding: 4px 0 14px; }
     const host = $('stackviz');
     if (!m.total) { host.innerHTML = ''; return; }
     const maxT = Math.max.apply(null, m.tiers.map(t => t.total));
-    host.innerHTML = '<div class="cap"><span>the stack, top to bottom</span><span>share of tracked value' + (m.prev ? ' · week' : '') + '</span></div>'
+    host.innerHTML = '<div class="cap"><span>the stack, top to bottom</span><span>share of tracked value' + (m.prev ? ' · ' + esc(m.span) : '') + '</span></div>'
       + m.tiers.map(t => {
         const share = 100 * t.total / m.total, wpct = maxT ? 100 * t.total / maxT : 0;
         const inside = wpct >= 40;
@@ -466,12 +508,12 @@ details .brief { padding: 4px 0 14px; }
       if (ranked.length >= 4) {
         const up = ranked.slice(0, 5), dn = ranked.slice(-5).reverse();
         const list = (arr) => arr.map(r => '<div class="mv"><span><b class="bright">' + esc(r.ticker) + '</b> <span class="muted">' + esc(r.short || r.name) + '</span></span><span class="num ' + cls(r.wk) + '">' + arrow(r.wk) + fmtPct(r.wk) + '</span></div>').join('');
-        movers = '<div class="movers"><h4>movers this week</h4><div class="cols"><div>' + list(up) + '</div><div>' + list(dn) + '</div></div></div>';
+        movers = '<div class="movers"><h4>movers, ' + esc(m.span) + '</h4><div class="cols"><div>' + list(up) + '</div><div>' + list(dn) + '</div></div></div>';
       } else if (b.movers_note) {
         movers = '<p class="note">' + esc(b.movers_note) + '</p>';
       }
     }
-    return '<h3>' + esc(b.title || ('Week of ' + fmtDate(b.date, true))) + '</h3>' + (b.intro ? '<p class="intro">' + esc(b.intro) + '</p>' : '') + '<ul class="items">' + items + '</ul>' + movers;
+    return '<h3>' + esc(b.title || fmtDate(b.date, true)) + '</h3>' + (b.intro ? '<p class="intro">' + esc(b.intro) + '</p>' : '') + '<ul class="items">' + items + '</ul>' + movers;
   }
 
   function renderBrief(m, briefs) {
@@ -501,7 +543,7 @@ details .brief { padding: 4px 0 14px; }
         const x = tl.x + TGAP / 2, y = tl.y + TGAP / 2, w = tl.w - TGAP, h = tl.h - TGAP;
         if (w <= 0.5 || h <= 0.5) return;
         const r = tl.item.r, share = 100 * tl.item.value / t.total;
-        const title = r.ticker + ' · ' + (r.short || r.name) + '\n' + fmtB(r.v.mcap_usd_b) + ' · ' + share.toFixed(1) + '% of ' + t.name + (m.prev && r.wk != null ? '\n' + fmtPct(r.wk) + ' this week' : '');
+        const title = r.ticker + ' · ' + (r.short || r.name) + '\n' + fmtB(r.v.mcap_usd_b) + ' · ' + share.toFixed(1) + '% of ' + t.name + (m.prev && r.wk != null ? '\n' + fmtPct(r.wk) + ' ' + m.span : '');
         const fits = (s) => w >= s.length * CW + 8;
         let label = '';
         const name = [r.ticker, r.short || '', r.ticker.split('.')[0]].filter(Boolean).find(fits);
@@ -521,7 +563,7 @@ details .brief { padding: 4px 0 14px; }
     const staleAfter = 3;
     const host = $('tiers');
     host.classList.toggle('noprev', !m.prev);
-    $('stack-note').textContent = m.prev ? 'tiles sized by market value · week change · forward p/e' : 'tiles sized by market value · week changes start ' + fmtDate(nextMonday(m.latest ? (m.latest.run_date || m.latest.as_of) : ''), false);
+    $('stack-note').textContent = m.prev ? 'tiles sized by market value · change ' + m.span + ' · forward p/e' : 'tiles sized by market value · changes start ' + fmtDate(nextRunDate(m.latest ? (m.latest.run_date || m.latest.as_of) : ''), false);
     const vizW = Math.max(240, Math.min(850, host.clientWidth));
     host.innerHTML = m.tiers.map(t => {
       const layers = LAYERS.filter(l => l.tier === t.id).map(l => {
@@ -538,13 +580,13 @@ details .brief { padding: 4px 0 14px; }
             + (m.prev ? '<div class="num ' + cls(r.wk) + '">' + arrow(r.wk) + fmtPct(r.wk) + '</div>' : '')
             + '<div class="num pe">' + fmtPE(v.fwd_pe) + '</div></div>';
         }).join('');
-        return '<div class="layer"><div class="layer-head"><h4>' + esc(l.name) + '/</h4><span class="lsum num">' + fmtB(lsum) + (t.total ? ' · ' + (100 * lsum / t.total).toFixed(lsum / t.total < 0.1 ? 1 : 0) + '% of tier' : '') + '</span><span class="gate">gating unit: ' + esc(l.gate) + '</span></div><div class="cols-head"><span>company</span><span>mkt cap</span>' + (m.prev ? '<span>week</span>' : '') + '<span>fwd p/e</span></div>' + rows + '</div>';
+        return '<div class="layer"><div class="layer-head"><h4>' + esc(l.name) + '/</h4><span class="lsum num">' + fmtB(lsum) + (t.total ? ' · ' + (100 * lsum / t.total).toFixed(lsum / t.total < 0.1 ? 1 : 0) + '% of tier' : '') + '</span><span class="gate">gating unit: ' + esc(l.gate) + '</span></div><div class="cols-head"><span>company</span><span>mkt cap</span>' + (m.prev ? '<span>chg</span>' : '') + '<span>fwd p/e</span></div>' + rows + '</div>';
       }).join('');
       const share = m.total ? (100 * t.total / m.total).toFixed(1) + '% of tracked' : '';
       const top = t.rows.filter(r => r.v && r.v.mcap_usd_b > 0).sort((a, b) => b.v.mcap_usd_b - a.v.mcap_usd_b).slice(0, 3)
         .map(r => '<b>' + esc(r.ticker) + '</b> ' + (100 * r.v.mcap_usd_b / t.total).toFixed(0) + '%').join(' · ');
       const viz = t.total > 0 ? '<div class="tier-viz">' + treemapSVG(t, m, vizW) + '<div class="tcap">' + top + ' of this tier</div></div>' : '';
-      return '<section class="tier" id="tier-' + t.id + '" aria-label="' + esc(t.name) + '"><div class="tier-head"><div class="nm"><i style="--c:var(' + t.tok + ')"></i><h3>' + esc(t.name) + '</h3></div><div class="tot"><div class="v">' + fmtB(t.total) + '</div><div class="d ' + cls(t.wk) + '">' + (m.prev ? arrow(t.wk) + fmtPct(t.wk) + ' wk' : share) + '</div></div><div class="sub">' + esc(t.sub) + ' · ' + t.n + ' companies</div></div>' + viz + layers + '</section>';
+      return '<section class="tier" id="tier-' + t.id + '" aria-label="' + esc(t.name) + '"><div class="tier-head"><div class="nm"><i style="--c:var(' + t.tok + ')"></i><h3>' + esc(t.name) + '</h3></div><div class="tot"><div class="v">' + fmtB(t.total) + '</div><div class="d ' + cls(t.wk) + '">' + (m.prev ? arrow(t.wk) + fmtPct(t.wk) : share) + '</div></div><div class="sub">' + esc(t.sub) + ' · ' + t.n + ' companies</div></div>' + viz + layers + '</section>';
     }).join('');
   }
 
@@ -552,7 +594,7 @@ details .brief { padding: 4px 0 14px; }
     const box = $('trend-box');
     const pts = (history || []).map(h => ({ as_of: h.as_of, total: h.total_usd_b })).filter(p => p.total > 0);
     if (pts.length < 2) {
-      box.innerHTML = '<p class="note">history begins ' + esc(fmtDate(pts[0] ? pts[0].as_of : '', true)) + '. a point is added every week; the line appears once there are two.</p>';
+      box.innerHTML = '<p class="note">history begins ' + esc(fmtDate(pts[0] ? pts[0].as_of : '', true)) + '. a point is added every monday and friday; the line appears once there are two.</p>';
       return;
     }
     const W = Math.max(300, Math.min(850, box.clientWidth || 340)), H = Math.round(W * 0.42), padL = 56, padR = 20, padT = 16, padB = 32;
@@ -567,14 +609,14 @@ details .brief { padding: 4px 0 14px; }
     const step = Math.max(1, Math.ceil(pts.length / 6));
     const xlabels = pts.map((p, i) => (i % step === 0 || i === pts.length - 1) ? '<text x="' + xs[i].toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="var(--fg-3)" font-family="var(--font-mono)">' + esc(fmtDate(p.as_of, false)) + '</text>' : '').join('');
     const last = pts[pts.length - 1];
-    const dots = pts.map((p, i) => '<circle cx="' + xs[i].toFixed(1) + '" cy="' + y(p.total).toFixed(1) + '" r="' + (i === pts.length - 1 ? 5 : 3) + '" fill="var(--fg)" stroke="var(--bg)" stroke-width="2"><title>' + esc(fmtDate(p.as_of, true)) + ': ' + esc(fmtB(p.total)) + '</title></circle>').join('');
-    box.innerHTML = '<div class="th"><span>tracked market value, usd</span><span class="num bright">' + esc(fmtB(last.total)) + ' on ' + esc(fmtDate(last.as_of, false)) + '</span></div>'
-      + '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Tracked market value by week">' + ticks + '<path d="' + area + '" fill="var(--fg)" fill-opacity="0.12"/><path d="' + path + '" fill="none" stroke="var(--fg)" stroke-width="2" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px rgba(53,240,106,.6))"/>' + dots + xlabels + '</svg>';
+    const dots = pts.map((p, i) => { const fri = weekday(p.as_of) === 5; return '<circle cx="' + xs[i].toFixed(1) + '" cy="' + y(p.total).toFixed(1) + '" r="' + (i === pts.length - 1 ? 5 : 3) + '" fill="' + (fri ? 'var(--fg)' : 'var(--bg)') + '" stroke="' + (fri ? 'var(--bg)' : 'var(--fg)') + '" stroke-width="2"><title>' + esc(DAYS[weekday(p.as_of)] + ' ' + fmtDate(p.as_of, true)) + ': ' + esc(fmtB(p.total)) + '</title></circle>'; }).join('');
+    box.innerHTML = '<div class="th"><span>tracked market value, usd · ● friday close ○ monday close</span><span class="num bright">' + esc(fmtB(last.total)) + ' on ' + esc(fmtDate(last.as_of, false)) + '</span></div>'
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Tracked market value by snapshot">' + ticks + '<path d="' + area + '" fill="var(--fg)" fill-opacity="0.12"/><path d="' + path + '" fill="none" stroke="var(--fg)" stroke-width="2" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px rgba(53,240,106,.6))"/>' + dots + xlabels + '</svg>';
   }
 
   function renderArchive(m, entries) {
     const host = $('archive-list');
-    if (!entries || !entries.length) { host.innerHTML = '<p class="note">earlier briefs collect here from the second week on</p>'; return; }
+    if (!entries || !entries.length) { host.innerHTML = '<p class="note">earlier briefs collect here from the second run on</p>'; return; }
     host.innerHTML = entries.map(e => '<details data-date="' + esc(e.date) + '"><summary><span class="mono">' + esc(e.date || '') + '</span><span>' + esc(e.title || e.week_label || '') + '</span></summary><div class="brief"><p class="note">loading…</p></div></details>').join('');
     host.querySelectorAll('details').forEach(d => {
       d.addEventListener('toggle', () => {
@@ -617,17 +659,29 @@ details .brief { padding: 4px 0 14px; }
   async function boot() {
     try {
       const [manifest, universe] = await Promise.all([getJSON('manifest.json'), getJSON('universe.json')]);
-      const dates = (manifest.snapshots || []).slice(0, 2);
-      if (!dates.length) { showStatus('no snapshot yet — the weekly refresh fills this page'); return; }
-      const snaps = await Promise.all(dates.map(d => getJSON('snapshots/' + d + '.json')));
+      const all = (manifest.snapshots || []).slice();
+      if (!all.length) { showStatus('no snapshot yet — the first refresh fills this page'); return; }
+      const modes = compareModes(all);
+      const want = (location.hash.match(/cmp=(\w+)/) || [])[1];
+      let mode = modes.find(x => x.id === want && x.date) || modes.find(x => x.date) || modes[0];
+      const cache = {};
+      const snap = async d => cache[d] || (cache[d] = await getJSON('snapshots/' + d + '.json'));
       const entries = manifest.briefs || [];
       const latestBrief = entries.length ? await getJSON('briefs/' + entries[0].date + '.json').catch(() => null) : null;
       const history = manifest.history || [];
-      const m = compute(universe, snaps);
-      lastM = m; lastHistory = history; lastW = $('tiers').clientWidth;
-      renderHeader(m); renderTape(m); renderTiles(m); renderStack(m);
-      if (latestBrief) renderBrief(m, [latestBrief]);
-      renderTiers(m); renderTrend(history); renderArchive(m, entries.slice(1)); renderNotes(m);
+      const show = async () => {
+        const snaps = [await snap(all[0])];
+        if (mode.date) snaps.push(await snap(mode.date));
+        const m = compute(universe, snaps);
+        m.spanLabel = mode.label; m.mode = mode.id;
+        lastM = m; lastHistory = history; lastW = $('tiers').clientWidth;
+        renderHeader(m); renderTape(m); renderTiles(m); renderStack(m);
+        if (latestBrief) renderBrief(m, [latestBrief]);
+        renderTiers(m); renderTrend(history); renderArchive(m, entries.slice(1));
+        renderCompare(modes, mode, id => { mode = modes.find(x => x.id === id); show(); });
+      };
+      await show();
+      renderNotes(lastM);
       if (location.hash && /^#[\w-]+$/.test(location.hash)) { const target = document.querySelector(location.hash); if (target) target.scrollIntoView(); }
     } catch (e) {
       showStatus('could not load the data (' + (e && e.message ? e.message : 'error') + '). reload to try again.');

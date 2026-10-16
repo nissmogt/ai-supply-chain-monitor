@@ -2,16 +2,16 @@
 
 Static JSON behind https://mehrabiani.com/projects/aisc/.
 The page is plain HTML and fetches these files directly from this repo over raw.githubusercontent.com, so there is no build step and no deploy.
-A week is live about five minutes after its pull request merges into `main`.
+A run is live about five minutes after its pull request merges into `main`.
 
 ## Files
 
 | File | What it holds |
 |---|---|
 | `universe.json` | The companies tracked: ticker, name, short name, layer, exchange, one-line role. Changes rarely. |
-| `snapshots/<date>.json` | One week of market values, keyed by ticker. `date` is the market close the figures reflect. |
-| `briefs/<date>.json` | One week of written items, with sources. |
-| `manifest.json` | Generated. Lists available dates and precomputes per-week totals for the trend chart. |
+| `snapshots/<date>.json` | One run of market values, keyed by ticker. `date` is the market close the figures reflect. Runs land on Monday (week open) and Friday (week close). |
+| `briefs/<date>.json` | One run of written items, with sources. |
+| `manifest.json` | Generated. Lists available dates and precomputes per-run totals for the trend chart. |
 
 Never hand-edit `manifest.json` — `scripts/aisc_update.py` rebuilds it from
 whatever snapshots and briefs are on disk.
@@ -50,12 +50,12 @@ A company row keeps its own `as_of`. When it is more than three days older than
 the snapshot's, the page flags that row as a stale quote rather than hiding it.
 A missing value is `null`, never a carried-forward number.
 
-## Publishing a week
+## Publishing a run
 
 ```sh
 git checkout -b aisc-<date> main
 scripts/aisc_update.py --snapshot new-snapshot.json --brief new-brief.json
-git add data/aisc && git commit -m "aisc: week of <date>" && git push origin aisc-<date>
+git add data/aisc && git commit -m "aisc: <date>" && git push origin aisc-<date>
 ```
 
 Open a pull request into `main`.
@@ -63,8 +63,8 @@ The `aisc-guard` check must pass before it can merge: only `data/aisc/` may chan
 
 The script refuses a snapshot whose tickers are not in `universe.json`, whose
 dates are malformed, or where fewer than half the companies have a market cap,
-so a failed data run cannot publish a half-empty week. Run it with no arguments
-to rebuild the manifest alone (useful after deleting a bad week).
+so a failed data run cannot publish a half-empty run. Run it with no arguments
+to rebuild the manifest alone (useful after deleting a bad run).
 
 ## Adding or removing a company
 
